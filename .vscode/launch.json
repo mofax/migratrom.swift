@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:migratrom.swift}",
+            "name": "Debug BasicExample",
+            "target": "BasicExample",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug BasicExample"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:migratrom.swift}",
+            "name": "Release BasicExample",
+            "target": "BasicExample",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release BasicExample"
+        }
+    ]
+}
