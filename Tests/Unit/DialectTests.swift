@@ -102,12 +102,6 @@ private struct StubDialect: SQLDialect {
     func releaseLock(_ db: any DB, key: Int64) async throws { try await base.releaseLock(db, key: key) }
 }
 
-private struct NoopLogger: MigrationLogger {
-    func info(_ message: String, metadata: String?) {}
-    func warn(_ message: String, metadata: String?) {}
-    func error(_ message: String, metadata: String?) {}
-}
-
 @Suite struct DialectTests {
     // MARK: - History DDL parity
 
@@ -196,21 +190,12 @@ private struct NoopLogger: MigrationLogger {
         db.setBool("SELECT pre", true)
         db.setBoolSequence("SELECT post", [false, true])
 
-        let op = Operation(
-            id: "test.op",
-            label: "Test op",
-            precheck: [Check(description: "pre", sql: "SELECT pre")],
-            execute: [ExecuteStep(description: "exec", sql: "DO THING")],
-            postcheck: [Check(description: "post", sql: "SELECT post")]
-        )
-        let migration = Migration(id: 1, parentId: nil, operations: [op])
-
         let options = ApplyOptions(
             logger: NoopLogger(),
             advisoryLock: true, // requested, but the dialect lacks the capability
             dialect: StubDialect(capabilities: caps(advisoryLocks: false))
         )
-        let result = try await applyMigrations([migration], db: db, options: options)
+        let result = try await applyMigrations([sampleMigration], db: db, options: options)
 
         #expect(result.applied == [1])
         #expect(!db.executed.contains { $0.contains("pg_advisory_lock") })
@@ -222,17 +207,8 @@ private struct NoopLogger: MigrationLogger {
         db.setBool("SELECT pre", true)
         db.setBoolSequence("SELECT post", [false, true])
 
-        let op = Operation(
-            id: "test.op",
-            label: "Test op",
-            precheck: [Check(description: "pre", sql: "SELECT pre")],
-            execute: [ExecuteStep(description: "exec", sql: "DO THING")],
-            postcheck: [Check(description: "post", sql: "SELECT post")]
-        )
-        let migration = Migration(id: 1, parentId: nil, operations: [op])
-
         let options = ApplyOptions(logger: NoopLogger(), advisoryLock: true, dialect: PostgresDialect())
-        _ = try await applyMigrations([migration], db: db, options: options)
+        _ = try await applyMigrations([sampleMigration], db: db, options: options)
 
         #expect(db.executed.contains { $0.contains("pg_advisory_lock") })
         #expect(db.executed.contains { $0.contains("pg_advisory_unlock") })

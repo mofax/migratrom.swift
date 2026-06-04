@@ -126,4 +126,92 @@ import Testing
             try rawSql(RawSqlInput(label: "x", execute: [], postcheck: [PartialCheck(sql: "SELECT true")]))
         }
     }
+
+    // MARK: - Builders previously without a Postgres SQL assertion
+
+    @Test func createTableWithPrimaryKey() throws {
+        let op = try createTable(
+            "public",
+            "user",
+            [ColumnDef(name: "id", typeSql: "bigint")],
+            primaryKey: PrimaryKey(columns: ["id"]),
+            dialect: PostgresDialect()
+        )
+        #expect(op.id == "table.user")
+        #expect(op.execute[0].sql == """
+        CREATE TABLE "public"."user" (
+          "id" bigint NOT NULL,
+          PRIMARY KEY ("id")
+        )
+        """)
+        #expect(op.precheck[0].sql.contains("to_regclass"))
+        #expect(op.precheck[0].sql.contains("IS NULL"))
+    }
+
+    @Test func createTypeEnum() throws {
+        let op = try createType("public", "mood", ["happy", "sad"], dialect: PostgresDialect())
+        #expect(op.id == "type.mood")
+        #expect(op.execute[0].sql == "CREATE TYPE \"public\".\"mood\" AS ENUM ('happy', 'sad')")
+    }
+
+    @Test func addEnumValueAppends() throws {
+        let op = try addEnumValue("public", "mood", "thrilled", dialect: PostgresDialect())
+        #expect(op.id == "enum.mood.thrilled")
+        #expect(op.execute[0].sql == "ALTER TYPE \"public\".\"mood\" ADD VALUE 'thrilled'")
+        #expect(op.precheck[0].sql.contains("pg_type"))
+    }
+
+    @Test func createViewSelect() throws {
+        let op = try createView("public", "active_users", "SELECT 1", dialect: PostgresDialect())
+        #expect(op.id == "view.active_users")
+        #expect(op.execute[0].sql == "CREATE VIEW \"public\".\"active_users\" AS SELECT 1")
+    }
+
+    @Test func createMaterializedViewSelect() throws {
+        let op = try createMaterializedView("public", "mv", "SELECT 1", dialect: PostgresDialect())
+        #expect(op.id == "matview.mv")
+        #expect(op.execute[0].sql == "CREATE MATERIALIZED VIEW \"public\".\"mv\" AS SELECT 1")
+    }
+
+    @Test func addUniqueConstraint() throws {
+        let op = try addUnique("public", "user", "user_email_key", ["email"], dialect: PostgresDialect())
+        #expect(op.id == "unique.user.user_email_key")
+        #expect(
+            op.execute[0].sql ==
+                "ALTER TABLE \"public\".\"user\" ADD CONSTRAINT \"user_email_key\" UNIQUE (\"email\")"
+        )
+    }
+
+    @Test func renameColumnUserName() throws {
+        let op = try renameColumn("public", "user", "name", "full_name", dialect: PostgresDialect())
+        #expect(op.id == "rename_column.user.name_to_full_name")
+        #expect(
+            op.execute[0].sql ==
+                "ALTER TABLE \"public\".\"user\" RENAME COLUMN \"name\" TO \"full_name\""
+        )
+    }
+
+    @Test func renameTableUserAccount() throws {
+        let op = try renameTable("public", "user", "account", dialect: PostgresDialect())
+        #expect(op.id == "rename_table.user_to_account")
+        #expect(op.execute[0].sql == "ALTER TABLE \"public\".\"user\" RENAME TO \"account\"")
+    }
+
+    @Test func setColumnDefaultRole() throws {
+        let op = try setColumnDefault("public", "user", "role", "DEFAULT 'user'", dialect: PostgresDialect())
+        #expect(op.id == "column_default.user.role")
+        #expect(
+            op.execute[0].sql ==
+                "ALTER TABLE \"public\".\"user\" ALTER COLUMN \"role\" SET DEFAULT 'user'"
+        )
+    }
+
+    @Test func setColumnNotNullEmail() throws {
+        let op = try setColumnNotNull("public", "user", "email", dialect: PostgresDialect())
+        #expect(op.id == "column_not_null.user.email")
+        #expect(
+            op.execute[0].sql ==
+                "ALTER TABLE \"public\".\"user\" ALTER COLUMN \"email\" SET NOT NULL"
+        )
+    }
 }

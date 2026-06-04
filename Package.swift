@@ -45,11 +45,14 @@ let package = Package(
                 "Migratrom",
                 "MigratromSQLite",
                 .product(name: "SQift", package: "SQift"),
-            ]
+            ],
+            path: "Tests",
+            exclude: ["Integration/PostgresNIO"]
         ),
         .testTarget(
             name: "MigratromPostgresNIOTests",
-            dependencies: ["MigratromPostgresNIO"]
+            dependencies: ["MigratromPostgresNIO"],
+            path: "Tests/Integration/PostgresNIO"
         ),
         .executableTarget(
             name: "BasicExample",
